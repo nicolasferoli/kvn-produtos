@@ -4,6 +4,7 @@ import { supabaseUrl, supabaseAnonKey } from '@/lib/config'
 
 // Função principal para criar cliente do servidor
 export async function createServerClient() {
+  // É importante aguardar a resolução da Promise do cookies()
   const cookieStore = await cookies()
   
   return createSupabaseServerClient(
@@ -12,6 +13,7 @@ export async function createServerClient() {
     {
       cookies: {
         getAll() {
+          // O cookieStore já está resolvido, então podemos chamar getAll diretamente
           return cookieStore.getAll()
         },
         setAll(cookiesToSet) {
