@@ -10,6 +10,7 @@ export function createClient() {
 
 // Cliente para uso no servidor (server components, server actions, etc)
 export async function createServerSupabaseClient() {
+  // É importante aguardar a resolução da Promise do cookies()
   const cookieStore = await cookies()
   
   return createServerClient(
@@ -18,6 +19,7 @@ export async function createServerSupabaseClient() {
     {
       cookies: {
         getAll() {
+          // O cookieStore já está resolvido, então podemos chamar getAll diretamente
           return cookieStore.getAll()
         },
         setAll(cookiesToSet) {
