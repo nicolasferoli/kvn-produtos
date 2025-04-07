@@ -6,6 +6,9 @@ import { supabaseUrl, supabaseAnonKey } from '@/lib/config'
 const publicRoutes = ['/', '/login', '/signup', '/auth']
 
 export async function middleware(request: NextRequest) {
+  console.log('[Middleware] URL do Supabase:', supabaseUrl)
+  console.log('[Middleware] Anon Key:', supabaseAnonKey ? '[definida]' : '[não definida]')
+  
   // Criar resposta NextResponse para modificar
   let response = NextResponse.next({
     request: {
@@ -13,50 +16,64 @@ export async function middleware(request: NextRequest) {
     }
   })
 
-  // Criar cliente Supabase
-  const supabase = createSupabaseServerClient(
-    supabaseUrl,
-    supabaseAnonKey,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
+  try {
+    // Criar cliente Supabase
+    const supabase = createSupabaseServerClient(
+      supabaseUrl,
+      supabaseAnonKey,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll()
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) => {
+              response.cookies.set(name, value, options)
+            })
+          },
         },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => {
-            response.cookies.set(name, value, options)
-          })
-        },
-      },
-    }
-  )
+      }
+    )
 
-  // IMPORTANTE: Verificar se o usuário está autenticado
-  const { data: { user } } = await supabase.auth.getUser()
-  
-  // A rota atual é pública?
-  const isPublicPage = publicRoutes.some(route => 
-    request.nextUrl.pathname === route || 
-    request.nextUrl.pathname.startsWith(`${route}/`)
-  )
-  
-  console.log(`[Middleware] Rota: ${request.nextUrl.pathname}, Autenticado: ${!!user}`)
-  
-  // Regra 1: Redirecionar raiz para login
-  if (request.nextUrl.pathname === '/') {
-    return NextResponse.redirect(new URL('/login', request.url))
-  }
-  
-  // Regra 2: Usuário autenticado não precisa ver login ou signup
-  if (user && ['/login', '/signup'].includes(request.nextUrl.pathname)) {
-    const dashboardUrl = new URL('/dashboard', request.url)
-    return NextResponse.redirect(dashboardUrl)
-  }
-  
-  // Regra 3: Usuário não autenticado não pode acessar rotas protegidas
-  if (!user && !isPublicPage) {
-    const loginUrl = new URL('/login', request.url)
-    return NextResponse.redirect(loginUrl)
+    // IMPORTANTE: Verificar se o usuário está autenticado
+    const { data: { user } } = await supabase.auth.getUser()
+    
+    // A rota atual é pública?
+    const isPublicPage = publicRoutes.some(route => 
+      request.nextUrl.pathname === route || 
+      request.nextUrl.pathname.startsWith(`${route}/`)
+    )
+    
+    console.log(`[Middleware] Rota: ${request.nextUrl.pathname}, Autenticado: ${!!user}`)
+    
+    // Regra 1: Redirecionar raiz para login
+    if (request.nextUrl.pathname === '/') {
+      return NextResponse.redirect(new URL('/login', request.url))
+    }
+    
+    // Regra 2: Usuário autenticado não precisa ver login ou signup
+    if (user && ['/login', '/signup'].includes(request.nextUrl.pathname)) {
+      const dashboardUrl = new URL('/dashboard', request.url)
+      return NextResponse.redirect(dashboardUrl)
+    }
+    
+    // Regra 3: Usuário não autenticado não pode acessar rotas protegidas
+    if (!user && !isPublicPage) {
+      const loginUrl = new URL('/login', request.url)
+      return NextResponse.redirect(loginUrl)
+    }
+  } catch (error) {
+    console.error('[Middleware] Erro:', error)
+    
+    // Em caso de erro, permitir acesso a rotas públicas e redirecionar para login em caso contrário
+    const isPublicPage = publicRoutes.some(route => 
+      request.nextUrl.pathname === route || 
+      request.nextUrl.pathname.startsWith(`${route}/`)
+    )
+    
+    if (!isPublicPage) {
+      return NextResponse.redirect(new URL('/login', request.url))
+    }
   }
   
   // Para todos os outros casos, permitir a requisição
