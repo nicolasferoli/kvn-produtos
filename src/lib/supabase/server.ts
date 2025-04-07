@@ -1,12 +1,12 @@
-import { createServerClient } from '@supabase/ssr'
+import { createServerClient as createSupabaseServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { supabaseUrl, supabaseAnonKey } from '@/lib/config'
 
 // Função principal para criar cliente do servidor
 export async function createServerClient() {
-  const cookieStore = cookies()
+  const cookieStore = await cookies()
   
-  return createServerClient(
+  return createSupabaseServerClient(
     supabaseUrl,
     supabaseAnonKey,
     {

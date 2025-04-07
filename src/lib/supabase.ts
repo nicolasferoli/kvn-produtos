@@ -10,7 +10,7 @@ export function createClient() {
 
 // Cliente para uso no servidor (server components, server actions, etc)
 export async function createServerSupabaseClient() {
-  const cookieStore = cookies()
+  const cookieStore = await cookies()
   
   return createServerClient(
     supabaseUrl,
