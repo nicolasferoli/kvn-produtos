@@ -5,9 +5,10 @@ import Link from "next/link"
 import { z } from "zod"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
+import { redirect } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
 
 import { Button } from "@/components/ui/button"
-import { createClient } from "@/lib/supabase/client"
 
 const formSchema = z.object({
   email: z.string().email("E-mail inválido"),
@@ -15,12 +16,6 @@ const formSchema = z.object({
 })
 
 type FormValues = z.infer<typeof formSchema>
-
-// Interface para erros de autenticação
-interface AuthError {
-  message: string;
-  status?: number;
-}
 
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
