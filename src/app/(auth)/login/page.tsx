@@ -6,6 +6,7 @@ import { z } from "zod"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import { createClient } from '@/lib/supabase/client';
+import { useRouter } from 'next/navigation';
 
 import { Button } from "@/components/ui/button"
 
@@ -19,6 +20,7 @@ type FormValues = z.infer<typeof formSchema>
 export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const router = useRouter()
   
   const {
     register,
@@ -54,11 +56,14 @@ export default function LoginPage() {
       if (authResponse.data?.session) {
         console.log("Login bem-sucedido! Sessão criada, redirecionando...")
         
-        // Aguardar um momento para garantir que os cookies sejam definidos
+        // Usar router.refresh() para garantir que os cookies sejam detectados pelo middleware
+        router.refresh()
+        
+        // Esperar um pouco e redirecionar usando o router
         setTimeout(() => {
           console.log("Redirecionando para o dashboard...")
-          window.location.href = "/dashboard"
-        }, 1000)
+          router.push('/dashboard')
+        }, 500)
       } else {
         setError("Falha ao iniciar sessão. Sem resposta de sessão.")
       }

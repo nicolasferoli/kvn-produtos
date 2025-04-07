@@ -1,20 +1,46 @@
 import { NextResponse, type NextRequest } from 'next/server'
+import { createServerClient as createSupabaseServerClient } from '@supabase/ssr'
+import { supabaseUrl, supabaseAnonKey } from '@/lib/config'
 
 // Lista de rotas que não requerem autenticação
 const publicRoutes = ['/', '/login', '/signup', '/auth']
 
-export function middleware(request: NextRequest) {
+export async function middleware(request: NextRequest) {
+  // Criar resposta NextResponse para modificar
+  let response = NextResponse.next({
+    request: {
+      headers: request.headers
+    }
+  })
+
+  // Criar cliente Supabase
+  const supabase = createSupabaseServerClient(
+    supabaseUrl,
+    supabaseAnonKey,
+    {
+      cookies: {
+        getAll() {
+          return request.cookies.getAll()
+        },
+        setAll(cookiesToSet) {
+          cookiesToSet.forEach(({ name, value, options }) => {
+            response.cookies.set(name, value, options)
+          })
+        },
+      },
+    }
+  )
+
+  // IMPORTANTE: Verificar se o usuário está autenticado
+  const { data: { user } } = await supabase.auth.getUser()
+  
   // A rota atual é pública?
   const isPublicPage = publicRoutes.some(route => 
     request.nextUrl.pathname === route || 
     request.nextUrl.pathname.startsWith(`${route}/`)
   )
   
-  // Verificar tokens de autenticação nos cookies (simplificado)
-  const hasAuthCookie = request.cookies.has('sb-access-token') || 
-                        request.cookies.has('sb-refresh-token')
-  
-  console.log(`[Middleware] Rota: ${request.nextUrl.pathname}, Autenticado: ${hasAuthCookie}`)
+  console.log(`[Middleware] Rota: ${request.nextUrl.pathname}, Autenticado: ${!!user}`)
   
   // Regra 1: Redirecionar raiz para login
   if (request.nextUrl.pathname === '/') {
@@ -22,17 +48,19 @@ export function middleware(request: NextRequest) {
   }
   
   // Regra 2: Usuário autenticado não precisa ver login ou signup
-  if (hasAuthCookie && ['/login', '/signup'].includes(request.nextUrl.pathname)) {
-    return NextResponse.redirect(new URL('/dashboard', request.url))
+  if (user && ['/login', '/signup'].includes(request.nextUrl.pathname)) {
+    const dashboardUrl = new URL('/dashboard', request.url)
+    return NextResponse.redirect(dashboardUrl)
   }
   
   // Regra 3: Usuário não autenticado não pode acessar rotas protegidas
-  if (!hasAuthCookie && !isPublicPage) {
-    return NextResponse.redirect(new URL('/login', request.url))
+  if (!user && !isPublicPage) {
+    const loginUrl = new URL('/login', request.url)
+    return NextResponse.redirect(loginUrl)
   }
   
   // Para todos os outros casos, permitir a requisição
-  return NextResponse.next()
+  return response
 }
 
 export const config = {
