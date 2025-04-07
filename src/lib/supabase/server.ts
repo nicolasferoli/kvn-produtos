@@ -2,21 +2,6 @@ import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 import { supabaseUrl, supabaseAnonKey } from '@/lib/config'
 
-// Interface para o cookiesToSet
-interface CookieOptions {
-  name: string
-  value: string
-  options?: {
-    domain?: string
-    path?: string
-    expires?: Date
-    httpOnly?: boolean
-    secure?: boolean
-    sameSite?: 'strict' | 'lax' | 'none'
-    maxAge?: number
-  }
-}
-
 // Função principal para criar cliente do servidor
 export async function createServerClient() {
   const cookieStore = cookies()

@@ -1,7 +1,6 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { z } from "zod"
 import { useForm } from "react-hook-form"
@@ -17,8 +16,13 @@ const formSchema = z.object({
 
 type FormValues = z.infer<typeof formSchema>
 
+// Interface para erros de autenticação
+interface AuthError {
+  message: string;
+  status?: number;
+}
+
 export default function LoginPage() {
-  const router = useRouter()
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   
@@ -64,11 +68,11 @@ export default function LoginPage() {
       } else {
         setError("Falha ao iniciar sessão. Sem resposta de sessão.")
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Erro detalhado de login:", error)
       
       // Mostrar mensagem mais específica baseada no erro
-      if (error.message) {
+      if (error && typeof error === 'object' && 'message' in error) {
         setError(`Erro: ${error.message}`)
       } else {
         setError("Falha ao fazer login. Verifique suas credenciais e tente novamente.")
