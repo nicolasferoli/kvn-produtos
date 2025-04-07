@@ -1,7 +1,6 @@
 import { Suspense } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { createClient } from "@/lib/supabase/server"
 
 export default async function DashboardPage() {
   return (
@@ -24,16 +23,7 @@ export default async function DashboardPage() {
 }
 
 async function ProjectList() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  
-  if (!user) {
-    return <div>Usuário não autenticado</div>
-  }
-  
-  // Aqui faríamos uma chamada para buscar os projetos do usuário
-  // Mas como ainda não temos a tabela criada, retornamos uma mensagem
-  
+  // Simplificando para remover a dependência de autenticação
   return (
     <div className="bg-card text-card-foreground rounded-lg p-6 shadow-sm">
       <h2 className="text-xl font-semibold mb-4">Seus Projetos</h2>

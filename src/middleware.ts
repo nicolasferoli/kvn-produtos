@@ -1,50 +1,38 @@
-import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
-export async function middleware(request: NextRequest) {
-  let supabaseResponse = NextResponse.next({
-    request,
-  })
-  
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({
-            request,
-          })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
-        },
-      },
-    }
+// Lista de rotas que não requerem autenticação
+const publicRoutes = ['/', '/login', '/signup', '/auth']
+
+export function middleware(request: NextRequest) {
+  // A rota atual é pública?
+  const isPublicPage = publicRoutes.some(route => 
+    request.nextUrl.pathname === route || 
+    request.nextUrl.pathname.startsWith(`${route}/`)
   )
-
-  // IMPORTANT: DO NOT REMOVE auth.getUser()
-  const {
-    data: { user },
-  } = await supabase.auth.getUser()
-
-  if (
-    !user &&
-    !request.nextUrl.pathname.startsWith('/login') &&
-    !request.nextUrl.pathname.startsWith('/auth') &&
-    request.nextUrl.pathname !== '/'
-  ) {
-    // Redirecionar para login se não estiver autenticado e não estiver em uma página pública
-    const url = request.nextUrl.clone()
-    url.pathname = '/login'
-    return NextResponse.redirect(url)
+  
+  // Verificar tokens de autenticação nos cookies (simplificado)
+  const hasAuthCookie = request.cookies.has('sb-access-token') || 
+                        request.cookies.has('sb-refresh-token')
+  
+  console.log(`[Middleware] Rota: ${request.nextUrl.pathname}, Autenticado: ${hasAuthCookie}`)
+  
+  // Regra 1: Redirecionar raiz para login
+  if (request.nextUrl.pathname === '/') {
+    return NextResponse.redirect(new URL('/login', request.url))
   }
-
-  return supabaseResponse
+  
+  // Regra 2: Usuário autenticado não precisa ver login ou signup
+  if (hasAuthCookie && ['/login', '/signup'].includes(request.nextUrl.pathname)) {
+    return NextResponse.redirect(new URL('/dashboard', request.url))
+  }
+  
+  // Regra 3: Usuário não autenticado não pode acessar rotas protegidas
+  if (!hasAuthCookie && !isPublicPage) {
+    return NextResponse.redirect(new URL('/login', request.url))
+  }
+  
+  // Para todos os outros casos, permitir a requisição
+  return NextResponse.next()
 }
 
 export const config = {
@@ -54,7 +42,6 @@ export const config = {
      * - _next/static (static files)
      * - _next/image (image optimization files)
      * - favicon.ico (favicon file)
-     * Feel free to modify this pattern to include more paths.
      */
     '/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)',
   ],

@@ -35,21 +35,44 @@ export default function LoginPage() {
       setIsLoading(true)
       setError(null)
       
+      console.log("Iniciando tentativa de login...")
+      
+      // Criar cliente Supabase
       const supabase = createClient()
-      const { error } = await supabase.auth.signInWithPassword({
+      
+      // Tentar fazer login
+      const authResponse = await supabase.auth.signInWithPassword({
         email: data.email,
         password: data.password,
       })
 
-      if (error) {
-        throw error
+      console.log("Resposta de autenticação:", authResponse)
+
+      if (authResponse.error) {
+        throw authResponse.error
       }
 
-      router.push("/dashboard")
-      router.refresh()
-    } catch (error) {
-      console.error("Erro de login:", error)
-      setError("Falha ao fazer login. Verifique suas credenciais.")
+      // Verificar se o login foi bem-sucedido e redirecionar
+      if (authResponse.data?.session) {
+        console.log("Login bem-sucedido! Sessão criada, redirecionando...")
+        
+        // Aguardar um momento para garantir que os cookies sejam definidos
+        setTimeout(() => {
+          console.log("Redirecionando para o dashboard...")
+          window.location.href = "/dashboard"
+        }, 1000)
+      } else {
+        setError("Falha ao iniciar sessão. Sem resposta de sessão.")
+      }
+    } catch (error: any) {
+      console.error("Erro detalhado de login:", error)
+      
+      // Mostrar mensagem mais específica baseada no erro
+      if (error.message) {
+        setError(`Erro: ${error.message}`)
+      } else {
+        setError("Falha ao fazer login. Verifique suas credenciais e tente novamente.")
+      }
     } finally {
       setIsLoading(false)
     }
@@ -60,7 +83,7 @@ export default function LoginPage() {
       <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px]">
         <div className="flex flex-col space-y-2 text-center">
           <h1 className="text-2xl font-semibold tracking-tight">
-            Entrar na sua conta
+            KVN Produtos
           </h1>
           <p className="text-sm text-muted-foreground">
             Digite seu e-mail e senha para entrar
